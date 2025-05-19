@@ -22,7 +22,7 @@ let isTouched = false;
 // Event handling
 function handleAction(e) {
     e.preventDefault();
-    if (isTouched || gameStatus === 'dead') return;
+    if (isTouched) return;
     isTouched = true;
     
     setTimeout(() => { isTouched = false; }, 300);
@@ -30,6 +30,7 @@ function handleAction(e) {
     switch (gameStatus) {
         case "start":
         case "end":
+        case "dead":
             startGame();
             break;
         case "on":
@@ -48,6 +49,7 @@ function startGame() {
     // Reset visual elements
     msgDiv.classList.add('off');
     gameContainer.style.pointerEvents = 'auto';
+    playerDiv.classList = 'player idle';  // Reset player sprite
 
     // Reset game state
     buildings.splice(0, buildings.length);
@@ -81,15 +83,17 @@ function render() {
     lastTime = thisTime;
 
     if (gameStatus === 'dead') {
+        // Force player to fall regardless of buildings
+        player.v -= g * dt;
+        player.y = Math.max(0, player.y + player.v * dt);
+        playerDiv.style.setProperty('--player-y', (320 - player.y) + "px");
+        
+        // Always show restart message when dead
+        msgDiv.innerHTML = `<h2>You're Dead</h2>Tap to restart`;
+        msgDiv.classList.remove('off');
+        
         if (player.y > 0) {
-            player.y = Math.max(0, player.y + player.v * dt);
-            player.v -= g * dt;
-            playerDiv.style.setProperty('--player-y', (320 - player.y) + "px");
             requestAnimationFrame(render);
-        } else {
-            gameStatus = 'end';
-            msgDiv.innerHTML = `<h2>Game Over!</h2>Tap to restart`;
-            msgDiv.classList = 'msg';
         }
         return;
     }
@@ -153,8 +157,9 @@ function render() {
             player.y <= building.height) {
             gameStatus = 'dead';
             playerDiv.classList = 'player dead';
-            msgDiv.innerHTML = `<h2>Colisão!</h2>`;
+            msgDiv.innerHTML = `<h2>You're Dead</h2>Tap to restart`;
             msgDiv.classList = 'msg';
+            player.v = 0; // Set initial velocity to zero to start falling
         }
 
         thisDiv.classList.add('destroy');

@@ -1,0 +1,18 @@
+function handleAction(e) {
+    e.preventDefault();
+    if (isTouched || gameStatus === 'dead' && player.y > 0) return;
+    isTouched = true;
+    
+    setTimeout(() => { isTouched = false; }, 300);
+
+    switch (gameStatus) {
+        case "start":
+        case "end":
+        case "dead":
+            startGame();
+            break;
+        case "on":
+            jump();
+            break;
+    }
+} 
