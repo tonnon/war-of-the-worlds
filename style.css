@@ -23,7 +23,9 @@ body {
   overflow: hidden;
   background: #000 url('stars.png') repeat top center;
   box-shadow: 0 0 1em #fff1;
-  touch-action: manipulation;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-user-select: none;
   user-select: none;
 }
 
@@ -54,6 +56,7 @@ body {
   width: 24px;
   height: 24px;
   background-size: contain;
+  touch-action: none;
 }
 .player.idle {
   background-image: url("https://assets.codepen.io/1948355/player-idle.gif");
@@ -74,6 +77,7 @@ body {
   left: var(--building-x, 960px);
   border: solid #0007;
   border-width: 0 1px;
+  touch-action: none;
 }
 .building_fragment {
   position: absolute;
