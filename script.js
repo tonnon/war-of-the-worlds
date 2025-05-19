@@ -66,7 +66,7 @@ function startGame() {
     gameStatus = 'on';
     render();
 
-    msgDiv.innerHTML = `<h2>Escape the Laser!</h2>(Click to jump)`;
+    msgDiv.innerHTML = `<h2>Escape the Laser!</h2>(Tap to jump)`;
     setTimeout(() => {
         msgDiv.classList = 'msg off';
     }, 3000);
@@ -96,7 +96,7 @@ function render() {
             requestAnimationFrame(render);
         } else {
             gameStatus = 'end';
-            msgDiv.innerHTML += `Click to restart`;
+            msgDiv.innerHTML += `Tap to restart`;
         }
         return false;
     }

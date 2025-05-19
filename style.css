@@ -21,7 +21,7 @@ body {
   width: 960px;
   height: 340px;
   overflow: hidden;
-  background: #000 url('https://image.ibb.co/mjnygo/stars.png') repeat top center;
+  background: #000 url('stars.png') repeat top center;
   box-shadow: 0 0 1em #fff1;
 }
 
@@ -178,15 +178,9 @@ body {
 
 .stars {
 	z-index: 0;
-	background: #000 url('https://image.ibb.co/mjnygo/stars.png') repeat top center;
+	background: url('https://image.ibb.co/mjnygo/stars.png') repeat top center;
 }
 
-
-.clouds{
-	z-index: 2;
-    background:transparent url('https://image.ibb.co/bT4N7T/clouds.png') repeat top center;
-	animation: move-clouds-back 200s linear infinite;
-}
 
 @keyframes move-twink-back {
 	from {background-position:0 0;}
