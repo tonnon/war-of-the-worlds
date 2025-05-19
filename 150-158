@@ -1,9 +1,0 @@
-        // Corrigido condição de colisão
-        if (player.x >= building.x && 
-            player.x <= building.x + building.width && 
-            player.y <= building.height) {
-            gameStatus = 'dead';
-            playerDiv.classList = 'player dead';
-            msgDiv.innerHTML = `<h2>You're Dead</h2>Tap to restart`;
-            msgDiv.classList = 'msg';
-        } 
