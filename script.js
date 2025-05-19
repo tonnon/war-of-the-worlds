@@ -19,11 +19,20 @@ const player = {
 
 let gameStatus = 'start';
 let speed, score, nextBuildingX, gameProgress, lastHeight, lastTime;
+let isProcessing = false;
 
 // On click event
 
 function handleAction(e) {
-    e.preventDefault(); // Previne comportamento padrão do touch
+    e.preventDefault();
+    
+    if (isProcessing) return;
+    isProcessing = true;
+    
+    setTimeout(() => {
+        isProcessing = false;
+    }, 100);
+
     switch (gameStatus) {
         case "start":
         case "end":
@@ -35,6 +44,9 @@ function handleAction(e) {
     }
 }
 
+gameContainer.addEventListener('touchstart', handleAction);
+gameContainer.addEventListener('click', handleAction);
+
 // document.addEventListener('keydown', (e) => {
 //     if((e.keyCode == 32) || (e.keyCode == 38)) {
 //     }
@@ -45,9 +57,9 @@ function handleAction(e) {
 // Game functions
 
 function startGame() {
-
-    // Reset all game variables
-
+    msgDiv.classList.add('off');
+    gameContainer.style.pointerEvents = 'auto';
+    
     buildings.splice(0,buildings.length);
     buildingsDiv.innerHTML = '';
 
@@ -63,12 +75,13 @@ function startGame() {
     
     lastTime = 0;
     gameStatus = 'on';
-    render();
-
-    msgDiv.innerHTML = `<h2>Escape the Laser!</h2>(Tap to jump)`;
+    
     setTimeout(() => {
-        msgDiv.classList = 'msg off';
-    }, 3000);
+        msgDiv.innerHTML = '';
+        msgDiv.classList.remove('off');
+    }, 10);
+
+    render();
 }
 
 function jump() {
@@ -229,6 +242,3 @@ function createBuilding() {
     nextBuildingX += building.width;
     lastHeight = building.height;
 }
-
-gameContainer.addEventListener('click', handleAction);
-gameContainer.addEventListener('touchstart', handleAction);
