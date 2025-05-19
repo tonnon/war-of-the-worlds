@@ -18,25 +18,32 @@ const player = {
 // Estado do jogo e variáveis 
 let gameStatus = 'start';
 let speed, score, nextBuildingX, gameProgress, lastHeight, lastTime;
-let lastActionTime = 0;
+let lastAction = 0;
 
-// ABORDAGEM RADICAL: Criar overlay transparente para capturar todos os toques
-const overlay = document.createElement('div');
-overlay.style.position = 'absolute';
-overlay.style.top = '0';
-overlay.style.left = '0';
-overlay.style.width = '100%';
-overlay.style.height = '100%';
-overlay.style.zIndex = '9999';
-overlay.style.background = 'transparent';
-document.body.appendChild(overlay);
+// Função que realmente funciona em WebViewer 
+function forceGameStart() {
+    console.log("Forçando início do jogo");
+    
+    // Ocultar mensagem
+    msgDiv.style.display = 'none';
+    msgDiv.classList.add('off');
+    msgDiv.innerHTML = '';
+    
+    // Iniciar jogo diretamente
+    startGame();
+    
+    // Registrar manipuladores diretos
+    document.addEventListener('click', handleTap);
+    document.addEventListener('touchstart', handleTap);
+    window.addEventListener('click', handleTap);
+    window.addEventListener('touchstart', handleTap);
+}
 
-// Função simplificada que será chamada por qualquer toque
-function gameAction() {
-    // Debounce básico
+// Manipulador simplificado
+function handleTap() {
     const now = Date.now();
-    if (now - lastActionTime < 300) return;
-    lastActionTime = now;
+    if (now - lastAction < 500) return;
+    lastAction = now;
     
     if (gameStatus === 'on') {
         if (player.v === 0) player.v = 3.2;
@@ -45,32 +52,33 @@ function gameAction() {
     }
 }
 
-// Usar MÚLTIPLOS tipos de eventos para GARANTIR que pelo menos um funcione
-overlay.ontouchstart = gameAction;
-overlay.onclick = gameAction;
-overlay.ontouchend = gameAction;
-overlay.onmousedown = gameAction;
-document.ontouchstart = gameAction;
-document.onclick = gameAction;
+// Detectar WebViewer
+const isWebViewer = /Android|AppInventor|WebView|Mobile/i.test(navigator.userAgent);
 
-// Mostrar mensagem inicial
-msgDiv.innerHTML = 'Tap to Start...';
-
-// Inicialização especial para MIT App Inventor WebViewer
-window.onload = function() {
-    // Força o foco
-    setTimeout(function(){
-        // Mensagem inicial
-        msgDiv.innerHTML = 'Tap to Start...';
-        msgDiv.classList.remove('off');
+// Auto-inicialização para WebViewer
+if (isWebViewer) {
+    window.addEventListener('load', function() {
+        console.log("WebViewer detectado, usando auto-inicialização");
         
-        // Tentar iniciar automaticamente após 1 segundo para testar
-        setTimeout(function(){
-            console.log("Auto-start test");
-            gameAction();
-        }, 1000);
-    }, 500);
-};
+        // Sequência de tentativas de inicialização
+        setTimeout(forceGameStart, 500);
+        setTimeout(forceGameStart, 1500);
+        setTimeout(forceGameStart, 3000);
+        
+        // Botão de emergência
+        const emergencyButton = document.createElement('button');
+        emergencyButton.textContent = "INICIAR JOGO";
+        emergencyButton.style.position = 'absolute';
+        emergencyButton.style.zIndex = '99999';
+        emergencyButton.style.top = '50%';
+        emergencyButton.style.left = '50%';
+        emergencyButton.style.transform = 'translate(-50%, -50%)';
+        emergencyButton.style.padding = '20px';
+        emergencyButton.style.fontSize = '24px';
+        emergencyButton.onclick = forceGameStart;
+        document.body.appendChild(emergencyButton);
+    });
+}
 
 function render() {
     const thisTime = performance.now();
@@ -79,21 +87,22 @@ function render() {
 
     if (gameStatus === 'dead') {
         // Mostrar mensagem de morte, garantir que seja visível
-        msgDiv.innerHTML = `<h2>You're Dead</h2>Tap to restart`;
+        msgDiv.innerHTML = `<h2>You're Dead</h2><div style="padding:10px;background:#f00;color:#fff">TAP TO RESTART</div>`;
+        msgDiv.style.display = 'block';
         msgDiv.classList.remove('off');
-        msgDiv.style.display = 'block'; // Garantir que seja exibido
         
         // Fazer o player cair
         player.v -= g * dt;
         player.y = Math.max(0, player.y + player.v * dt);
         playerDiv.style.setProperty('--player-y', (320 - player.y) + "px");
         
-        if (player.y > 0) {
-            requestAnimationFrame(render);
-        } else {
-            console.log("Player on ground, ready to restart");
-            // Quando atinge o chão, garantir que o estado permita reinício
+        if (player.y <= 0) {
             gameStatus = 'end';
+            
+            // Garantir visibilidade da mensagem 
+            msgDiv.innerHTML = `<h2>You're Dead</h2><div style="padding:10px;background:#f00;color:#fff">TAP TO RESTART</div>`;
+            msgDiv.style.display = 'block';
+            msgDiv.classList.remove('off');
         }
         return;
     }
@@ -157,8 +166,8 @@ function render() {
             player.y <= building.height) {
             gameStatus = 'dead';
             playerDiv.classList = 'player dead';
-            msgDiv.innerHTML = `<h2>You're Dead</h2>Tap to restart`;
-            msgDiv.classList = 'msg';
+            msgDiv.innerHTML = `<h2>You're Dead</h2><div style="padding:10px;background:#f00;color:#fff">TAP TO RESTART</div>`;
+            msgDiv.style.display = 'block';
             player.v = 0; // Set initial velocity to zero to start falling
         }
 
