@@ -22,19 +22,18 @@ let speed, score, nextBuildingX, gameProgress, lastHeight, lastTime;
 
 // On click event
 
-gameContainer.addEventListener('click', () => {
+function handleAction(e) {
+    e.preventDefault(); // Previne comportamento padrão do touch
     switch (gameStatus) {
-
         case "start":
         case "end":
             startGame();
             break;
-
         case "on":
             jump();
             break;
     }
-});
+}
 
 // document.addEventListener('keydown', (e) => {
 //     if((e.keyCode == 32) || (e.keyCode == 38)) {
@@ -230,3 +229,6 @@ function createBuilding() {
     nextBuildingX += building.width;
     lastHeight = building.height;
 }
+
+gameContainer.addEventListener('click', handleAction);
+gameContainer.addEventListener('touchstart', handleAction);

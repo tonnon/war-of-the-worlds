@@ -23,6 +23,8 @@ body {
   overflow: hidden;
   background: #000 url('stars.png') repeat top center;
   box-shadow: 0 0 1em #fff1;
+  touch-action: manipulation;
+  user-select: none;
 }
 
 .score {
