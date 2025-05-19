@@ -18,106 +18,59 @@ const player = {
 // Estado do jogo e variáveis 
 let gameStatus = 'start';
 let speed, score, nextBuildingX, gameProgress, lastHeight, lastTime;
-let lastTapTime = 0;
-const TAP_DEBOUNCE = 500; // ms
+let lastActionTime = 0;
 
-// Detectar dispositivo móvel
-const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+// ABORDAGEM RADICAL: Criar overlay transparente para capturar todos os toques
+const overlay = document.createElement('div');
+overlay.style.position = 'absolute';
+overlay.style.top = '0';
+overlay.style.left = '0';
+overlay.style.width = '100%';
+overlay.style.height = '100%';
+overlay.style.zIndex = '9999';
+overlay.style.background = 'transparent';
+document.body.appendChild(overlay);
 
-// Remover TODOS os event listeners antigos
-function removeAllEventListeners() {
-    const newContainer = gameContainer.cloneNode(false); // Shallow clone!
-    
-    // Copiar somente os filhos, não os eventos
-    while (gameContainer.firstChild) {
-        newContainer.appendChild(gameContainer.firstChild);
-    }
-    
-    // Substituir o container antigo
-    if (gameContainer.parentNode) {
-        gameContainer.parentNode.replaceChild(newContainer, gameContainer);
-    }
-    
-    // Atualizar referência global
-    return newContainer;
-}
-
-// Limpar eventos antigos
-const gameArea = removeAllEventListeners();
-
-// Função controladora de input unificada
-function handleGameInput(e) {
-    if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    // Prevenir múltiplos toques/cliques
+// Função simplificada que será chamada por qualquer toque
+function gameAction() {
+    // Debounce básico
     const now = Date.now();
-    if (now - lastTapTime < TAP_DEBOUNCE) return;
-    lastTapTime = now;
+    if (now - lastActionTime < 300) return;
+    lastActionTime = now;
     
-    // Comportamento baseado no estado do jogo
     if (gameStatus === 'on') {
-        jump();
+        if (player.v === 0) player.v = 3.2;
     } else {
         startGame();
     }
 }
 
-function jump() {
-    if (player.v === 0) player.v = 3.2;
-}
+// Usar MÚLTIPLOS tipos de eventos para GARANTIR que pelo menos um funcione
+overlay.ontouchstart = gameAction;
+overlay.onclick = gameAction;
+overlay.ontouchend = gameAction;
+overlay.onmousedown = gameAction;
+document.ontouchstart = gameAction;
+document.onclick = gameAction;
 
-// Configurar eventos para diferentes plataformas
-if (isMobile) {
-    // Configurações para dispositivos móveis
-    gameArea.addEventListener('touchend', handleGameInput, {passive: false});
-    
-    // Prevenir comportamentos de navegador móvel
-    gameArea.addEventListener('touchstart', function(e) {
-        e.preventDefault(); // Prevenir zoom/scroll
-    }, {passive: false});
-    
-    // Desativar scroll/zoom
-    document.body.style.overflow = 'hidden';
-    document.body.style.touchAction = 'none';
-} else {
-    // Configurações para desktop
-    gameArea.addEventListener('click', handleGameInput);
-    document.addEventListener('keydown', function(e) {
-        if (e.code === 'Space') handleGameInput();
-    });
-}
+// Mostrar mensagem inicial
+msgDiv.innerHTML = 'Tap to Start...';
 
-// Função para iniciar o jogo
-function startGame() {
-    console.log("Starting game...");
-    
-    // Resetar visual
-    msgDiv.classList.add('off');
-    playerDiv.className = 'player idle';
-    
-    // Resetar estado
-    buildings.length = 0;
-    buildingsDiv.innerHTML = '';
-    
-    player.x = 480;
-    player.y = 0;
-    player.v = 0;
-    
-    speed = 1;
-    score = 0;
-    nextBuildingX = 960;
-    gameProgress = 0;
-    lastHeight = 0;
-    lastTime = performance.now();
-    
-    gameStatus = 'on';
-    
-    console.log("Game started!");
-    render();
-}
+// Inicialização especial para MIT App Inventor WebViewer
+window.onload = function() {
+    // Força o foco
+    setTimeout(function(){
+        // Mensagem inicial
+        msgDiv.innerHTML = 'Tap to Start...';
+        msgDiv.classList.remove('off');
+        
+        // Tentar iniciar automaticamente após 1 segundo para testar
+        setTimeout(function(){
+            console.log("Auto-start test");
+            gameAction();
+        }, 1000);
+    }, 500);
+};
 
 function render() {
     const thisTime = performance.now();
@@ -125,9 +78,10 @@ function render() {
     lastTime = thisTime;
 
     if (gameStatus === 'dead') {
-        // Mostrar mensagem imediatamente
+        // Mostrar mensagem de morte, garantir que seja visível
         msgDiv.innerHTML = `<h2>You're Dead</h2>Tap to restart`;
         msgDiv.classList.remove('off');
+        msgDiv.style.display = 'block'; // Garantir que seja exibido
         
         // Fazer o player cair
         player.v -= g * dt;
@@ -260,4 +214,36 @@ function createBuilding() {
     
     nextBuildingX += building.width;
     lastHeight = building.height;
+}
+
+// Função para iniciar o jogo
+function startGame() {
+    console.log("Starting game...");
+    
+    // CORREÇÃO: Realmente esconder a mensagem de várias maneiras
+    msgDiv.classList.add('off');
+    msgDiv.innerHTML = ''; // Remover completamente o texto
+    msgDiv.style.display = 'none'; // Garantir que não seja exibido
+    
+    playerDiv.className = 'player idle';
+    
+    // Resetar estado
+    buildings.length = 0;
+    buildingsDiv.innerHTML = '';
+    
+    player.x = 480;
+    player.y = 0;
+    player.v = 0;
+    
+    speed = 1;
+    score = 0;
+    nextBuildingX = 960;
+    gameProgress = 0;
+    lastHeight = 0;
+    lastTime = performance.now();
+    
+    gameStatus = 'on';
+    
+    console.log("Game started!");
+    render();
 }
