@@ -22,25 +22,30 @@ let isTouched = false;
 // Event handling
 function handleAction(e) {
     e.preventDefault();
+    e.stopPropagation();
+    
     if (isTouched) return;
     isTouched = true;
     
-    setTimeout(() => { isTouched = false; }, 300);
-
-    switch (gameStatus) {
-        case "start":
-        case "end":
-        case "dead":
-            startGame();
-            break;
-        case "on":
-            jump();
-            break;
+    // Aumente o tempo de debounce para evitar toques rápidos acidentais
+    setTimeout(() => { isTouched = false; }, 500);
+    
+    // Verifica o estado do jogo e bloqueia transições indesejadas
+    if (gameStatus === 'on') {
+        jump();
+        return;
     }
+    
+    // Para os estados start, end, dead - inicia o jogo
+    startGame();
 }
 
-gameContainer.addEventListener('touchstart', handleAction, { passive: false });
+// Use touchend em vez de touchstart para ser mais confiável em dispositivos móveis
+gameContainer.addEventListener('touchend', handleAction, { passive: false });
 gameContainer.addEventListener('click', handleAction);
+
+// Remova o listener touchstart existente
+gameContainer.removeEventListener('touchstart', handleAction);
 
 // Game functions
 function startGame() {
