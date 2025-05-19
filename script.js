@@ -10,76 +10,113 @@ const road = document.querySelector('.road');
 const g = 0.098;
 const buildings = [];
 const player = {
-    x: 480,  // Posição inicial ajustada
+    x: 480,
     y: 0,
     v: 0
 }
 
+// Estado do jogo e variáveis 
 let gameStatus = 'start';
 let speed, score, nextBuildingX, gameProgress, lastHeight, lastTime;
-let isTouched = false;
+let lastTapTime = 0;
+const TAP_DEBOUNCE = 500; // ms
 
-// Event handling
-function handleAction(e) {
-    e.preventDefault();
-    e.stopPropagation();
+// Detectar dispositivo móvel
+const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+// Remover TODOS os event listeners antigos
+function removeAllEventListeners() {
+    const newContainer = gameContainer.cloneNode(false); // Shallow clone!
     
-    if (isTouched) return;
-    isTouched = true;
-    
-    // Aumente o tempo de debounce para evitar toques rápidos acidentais
-    setTimeout(() => { isTouched = false; }, 500);
-    
-    // Verifica o estado do jogo e bloqueia transições indesejadas
-    if (gameStatus === 'on') {
-        jump();
-        return;
+    // Copiar somente os filhos, não os eventos
+    while (gameContainer.firstChild) {
+        newContainer.appendChild(gameContainer.firstChild);
     }
     
-    // Para os estados start, end, dead - inicia o jogo
-    startGame();
+    // Substituir o container antigo
+    if (gameContainer.parentNode) {
+        gameContainer.parentNode.replaceChild(newContainer, gameContainer);
+    }
+    
+    // Atualizar referência global
+    return newContainer;
 }
 
-// Use touchend em vez de touchstart para ser mais confiável em dispositivos móveis
-gameContainer.addEventListener('touchend', handleAction, { passive: false });
-gameContainer.addEventListener('click', handleAction);
+// Limpar eventos antigos
+const gameArea = removeAllEventListeners();
 
-// Remova o listener touchstart existente
-gameContainer.removeEventListener('touchstart', handleAction);
+// Função controladora de input unificada
+function handleGameInput(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    // Prevenir múltiplos toques/cliques
+    const now = Date.now();
+    if (now - lastTapTime < TAP_DEBOUNCE) return;
+    lastTapTime = now;
+    
+    // Comportamento baseado no estado do jogo
+    if (gameStatus === 'on') {
+        jump();
+    } else {
+        startGame();
+    }
+}
 
-// Game functions
+function jump() {
+    if (player.v === 0) player.v = 3.2;
+}
+
+// Configurar eventos para diferentes plataformas
+if (isMobile) {
+    // Configurações para dispositivos móveis
+    gameArea.addEventListener('touchend', handleGameInput, {passive: false});
+    
+    // Prevenir comportamentos de navegador móvel
+    gameArea.addEventListener('touchstart', function(e) {
+        e.preventDefault(); // Prevenir zoom/scroll
+    }, {passive: false});
+    
+    // Desativar scroll/zoom
+    document.body.style.overflow = 'hidden';
+    document.body.style.touchAction = 'none';
+} else {
+    // Configurações para desktop
+    gameArea.addEventListener('click', handleGameInput);
+    document.addEventListener('keydown', function(e) {
+        if (e.code === 'Space') handleGameInput();
+    });
+}
+
+// Função para iniciar o jogo
 function startGame() {
-    if (gameStatus === 'on') return;
-
-    // Reset visual elements
+    console.log("Starting game...");
+    
+    // Resetar visual
     msgDiv.classList.add('off');
-    gameContainer.style.pointerEvents = 'auto';
-    playerDiv.classList = 'player idle';  // Reset player sprite
-
-    // Reset game state
-    buildings.splice(0, buildings.length);
+    playerDiv.className = 'player idle';
+    
+    // Resetar estado
+    buildings.length = 0;
     buildingsDiv.innerHTML = '';
     
     player.x = 480;
     player.y = 0;
     player.v = 0;
-
+    
     speed = 1;
     score = 0;
     nextBuildingX = 960;
     gameProgress = 0;
     lastHeight = 0;
-    lastTime = 0;
+    lastTime = performance.now();
     
     gameStatus = 'on';
-    msgDiv.innerHTML = '';
-
+    
+    console.log("Game started!");
     render();
-}
-
-function jump() {
-    if (player.v !== 0) return;
-    player.v = 3.2;
 }
 
 function render() {
@@ -88,17 +125,21 @@ function render() {
     lastTime = thisTime;
 
     if (gameStatus === 'dead') {
-        // Force player to fall regardless of buildings
+        // Mostrar mensagem imediatamente
+        msgDiv.innerHTML = `<h2>You're Dead</h2>Tap to restart`;
+        msgDiv.classList.remove('off');
+        
+        // Fazer o player cair
         player.v -= g * dt;
         player.y = Math.max(0, player.y + player.v * dt);
         playerDiv.style.setProperty('--player-y', (320 - player.y) + "px");
         
-        // Always show restart message when dead
-        msgDiv.innerHTML = `<h2>You're Dead</h2>Tap to restart`;
-        msgDiv.classList.remove('off');
-        
         if (player.y > 0) {
             requestAnimationFrame(render);
+        } else {
+            console.log("Player on ground, ready to restart");
+            // Quando atinge o chão, garantir que o estado permita reinício
+            gameStatus = 'end';
         }
         return;
     }
