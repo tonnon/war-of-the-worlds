@@ -67,6 +67,10 @@ body {
 .player.jump {
   background-image: url("https://assets.codepen.io/1948355/player-jump.gif");
 }
+.player.jump-high {
+  background-image: url("https://assets.codepen.io/1948355/player-jump.gif");
+  filter: brightness(1.3) hue-rotate(45deg);
+}
 .player.dead {
   background-image: url("https://assets.codepen.io/1948355/player-dead.gif");
 }
@@ -117,14 +121,7 @@ body {
 }
 .building.destroy .building_fragment {
   z-index: 100;
-  -webkit-animation: destroy 1s ease-out forwards;
-          animation: destroy 1s ease-out forwards;
-}
-@-webkit-keyframes destroy {
-  to {
-    transform: translateX(var(--tx)) translateY(var(--ty)) rotateX(var(--rx)) rotateY(var(--ry)) rotateZ(var(--rz));
-    opacity: 0;
-  }
+  animation: destroy 1s ease-out forwards;
 }
 @keyframes destroy {
   to {
@@ -143,13 +140,7 @@ body {
   border-radius: 5px;
   background-image: linear-gradient(#02204D, #0554cd, #02204D);
   box-shadow: 5px 5px 5px #0459D9;
-  -webkit-animation: laserOff 0.5s ease-out forwards;
-          animation: laserOff 0.5s ease-out forwards;
-}
-@-webkit-keyframes laserOff {
-  to {
-    opacity: 0;
-  }
+  animation: laserOff 0.5s ease-out forwards;
 }
 @keyframes laserOff {
   to {
@@ -186,7 +177,6 @@ body {
 	z-index: 0;
 	background: url('https://image.ibb.co/mjnygo/stars.png') repeat top center;
 }
-
 
 @keyframes move-twink-back {
 	from {background-position:0 0;}

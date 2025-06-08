@@ -1,71 +1,94 @@
-// DOM variables
 const scoreDiv = document.querySelector('.score');
 const msgDiv = document.querySelector('.msg');
 const gameContainer = document.querySelector('.game');
 const playerDiv = document.querySelector('.player');
 const buildingsDiv = document.querySelector('.buildings');
 const road = document.querySelector('.road');
-
-// Game const/variables
 const g = 0.098;
 const buildings = [];
 const player = {
     x: 480,
     y: 0,
-    v: 0
+    v: 0,
+    jumpCount: 0,
+    isJumping: false,
+    jumpStartTime: 0,
+    longJumpThreshold: 300,
+    lastCollidedBuilding: null
 }
-
-// Estado do jogo e variáveis 
 let gameStatus = 'start';
 let speed, score, nextBuildingX, gameProgress, lastHeight, lastTime;
 let lastAction = 0;
+let lastClickTime = 0;
+let isMouseDown = false;
+let mouseDownTime = 0;
 
-// Função que realmente funciona em WebViewer 
 function forceGameStart() {
     console.log("Forçando início do jogo");
     
-    // Ocultar mensagem
     msgDiv.style.display = 'none';
     msgDiv.classList.add('off');
     msgDiv.innerHTML = '';
     
-    // Iniciar jogo diretamente
     startGame();
     
-    // Registrar manipuladores diretos
     document.addEventListener('click', handleTap);
     document.addEventListener('touchstart', handleTap);
     window.addEventListener('click', handleTap);
     window.addEventListener('touchstart', handleTap);
 }
 
-// Manipulador simplificado
-function handleTap() {
-    const now = Date.now();
-    if (now - lastAction < 500) return;
-    lastAction = now;
-    
-    if (gameStatus === 'on') {
-        if (player.v === 0) player.v = 3.2;
-    } else {
-        startGame();
-    }
+function handleMouseDown(e) {
+    isMouseDown = true;
+    mouseDownTime = Date.now();
 }
 
-// Detectar WebViewer
+function handleTap(e) {
+    const now = Date.now();
+    
+    if (gameStatus === 'end' || gameStatus === 'falling') {
+        startGame();
+        lastAction = now;
+        return;
+    }
+    
+    if (gameStatus !== 'on') {
+        startGame();
+        lastAction = now;
+        return;
+    }
+    
+    if (now - lastAction < 150) return;
+    
+    if (gameStatus === 'on') {
+        if (player.jumpCount === 0) {
+            player.v = 3.2;
+            player.jumpCount = 1;
+            playerDiv.classList = 'player jump';
+            console.log("Primeiro pulo!");
+        } 
+        else if (player.jumpCount === 1 && now - lastClickTime < 300) {
+            player.v = 3.5;
+            player.jumpCount = 2;
+            playerDiv.classList = 'player jump-high';
+            console.log("Double jump!");
+        }
+    }
+    
+    lastClickTime = now;
+    lastAction = now;
+}
+
 const isWebViewer = /Android|AppInventor|WebView|Mobile/i.test(navigator.userAgent);
 
-// Auto-inicialização para WebViewer
 if (isWebViewer) {
     window.addEventListener('load', function() {
         console.log("WebViewer detectado, usando auto-inicialização");
         
-        // Sequência de tentativas de inicialização
         setTimeout(forceGameStart, 500);
         setTimeout(forceGameStart, 1500);
         setTimeout(forceGameStart, 3000);
         
-        // Botão de emergência
         const emergencyButton = document.createElement('button');
         emergencyButton.textContent = "INICIAR JOGO";
         emergencyButton.style.position = 'absolute';
@@ -80,34 +103,67 @@ if (isWebViewer) {
     });
 }
 
+window.addEventListener('load', function() {
+    document.addEventListener('click', handleTap);
+    document.addEventListener('touchstart', handleTap);
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('touchstart', handleMouseDown);
+    
+    console.log("Event listeners para iniciar o jogo registrados");
+});
+
+function handleDeadPlayerPhysics(dt) {
+    player.v -= g * 2 * dt;
+    player.y += player.v * dt;
+    
+    if (player.y <= 0) {
+        player.y = 0;
+        player.v = 0;
+        
+        gameStatus = 'end';
+        
+        msgDiv.innerHTML = `<h2 style="color:#fff;font-size:28px;">Game Over</h2><div style="padding:15px;background:#f00;color:#fff;font-size:20px;margin-top:10px;">TAP TO RESTART</div>`;
+        msgDiv.style.display = 'block';
+        msgDiv.style.opacity = '1';
+        msgDiv.style.zIndex = '9999';
+        msgDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        msgDiv.style.padding = '20px';
+        msgDiv.style.borderRadius = '10px';
+        msgDiv.classList.remove('off');
+        
+        console.log("Game Over - personagem atingiu o chão");
+    }
+    
+    playerDiv.style.setProperty('--player-y', (320 - player.y) + "px");
+}
+
 function render() {
     const thisTime = performance.now();
     const dt = Math.min(32, Math.max(8, thisTime - lastTime)) / 16.666;
     lastTime = thisTime;
 
-    if (gameStatus === 'dead') {
-        // Mostrar mensagem de morte, garantir que seja visível
-        msgDiv.innerHTML = `<h2>You're Dead</h2><div style="padding:10px;background:#f00;color:#fff">TAP TO RESTART</div>`;
+    if (gameStatus === 'falling') {
+        handleDeadPlayerPhysics(dt);
+        
+        requestAnimationFrame(render);
+        return;
+    }
+    
+    if (gameStatus === 'end') {
+        msgDiv.innerHTML = `<h2 style="color:#fff;font-size:28px;">Game Over</h2><div style="padding:15px;background:#f00;color:#fff;font-size:20px;margin-top:10px;">TAP TO RESTART</div>`;
         msgDiv.style.display = 'block';
+        msgDiv.style.opacity = '1';
+        msgDiv.style.zIndex = '9999';
+        msgDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        msgDiv.style.padding = '20px';
+        msgDiv.style.borderRadius = '10px';
         msgDiv.classList.remove('off');
         
-        // Fazer o player cair
-        player.v -= g * dt;
-        player.y = Math.max(0, player.y + player.v * dt);
+        player.y = 0;
         playerDiv.style.setProperty('--player-y', (320 - player.y) + "px");
-        
-        if (player.y <= 0) {
-            gameStatus = 'end';
-            
-            // Garantir visibilidade da mensagem 
-            msgDiv.innerHTML = `<h2>You're Dead</h2><div style="padding:10px;background:#f00;color:#fff">TAP TO RESTART</div>`;
-            msgDiv.style.display = 'block';
-            msgDiv.classList.remove('off');
-        }
         return;
     }
 
-    // Building generation
     if (nextBuildingX < gameProgress + 960 + speed * dt) {
         createBuilding();
     }
@@ -129,7 +185,6 @@ function render() {
         building.div.style.setProperty('--building-x', (building.x - gameProgress) + "px");
     });
 
-    // Player physics
     if (player.v > 0) {
         player.y += player.v * dt;
         player.v = Math.max(0, player.v - g * dt);
@@ -138,15 +193,16 @@ function render() {
         player.v -= g * dt;
     } else {
         player.v = 0;
+        player.jumpCount = 0;
+        player.isJumping = false;
+        playerDiv.classList = 'player idle';
     }
 
-    // Player position
     let nextPlayerX = player.x + speed * dt;
     if (nextPlayerX - gameProgress < 720) {
         nextPlayerX += (1 / speed) * dt;
     }
 
-    // Collision detection fix
     if (nextBuilding && (nextPlayerX > nextBuilding.x) && (nextBuilding.height > player.y)) {
         nextPlayerX = nextBuilding.x;
     }
@@ -155,35 +211,66 @@ function render() {
     playerDiv.style.setProperty('--player-x', (nextPlayerX - gameProgress) + "px");
     playerDiv.style.setProperty('--player-y', (320 - player.y) + "px");
 
-    // Building destruction
-    destroyBuildings.forEach(ix => {
+    destroyBuildings.forEach((ix, arrayIndex) => {
         const building = buildings[ix];
         const thisDiv = building.div;
         
-        // Corrigido condição de colisão
-        if (player.x >= building.x && 
-            player.x <= building.x + building.width && 
-            player.y <= building.height) {
-            gameStatus = 'dead';
-            playerDiv.classList = 'player dead';
-            msgDiv.innerHTML = `<h2>You're Dead</h2><div style="padding:10px;background:#f00;color:#fff">TAP TO RESTART</div>`;
-            msgDiv.style.display = 'block';
-            player.v = 0; // Set initial velocity to zero to start falling
+        if (building.x < gameProgress + 180) {
+            thisDiv.classList.add('destroy');
+            
+            const playerIsOnBuilding = (
+                player.x >= building.x && 
+                player.x <= building.x + building.width && 
+                player.y <= building.height + 5 && 
+                player.y >= building.height - 10   
+            );
+            
+            if (playerIsOnBuilding && gameStatus === 'on') {
+                console.log("Jogador detectado em cima do prédio - aguardando destruição");
+                
+                setTimeout(() => {
+                    if (gameStatus === 'on') { 
+                        gameStatus = 'falling'; 
+                        playerDiv.classList = 'player dead';
+                        player.v = -3; 
+                        
+                        console.log("Jogador começou a cair após destruição do prédio");
+                    }
+                }, 400); 
+            }
+            
+            setTimeout(() => {
+                thisDiv.remove();
+                console.log("Prédio removido da DOM");
+            }, 1000);
+            
+            buildings.splice(ix - arrayIndex, 1);
+            arrayIndex++;
+            score++;
         }
-
-        thisDiv.classList.add('destroy');
-        setTimeout(() => thisDiv.remove(), 1000);
-        buildings.splice(ix, 1);
-        score++;
+        
+        const frontCollision = (
+            gameStatus === 'on' &&
+            player.x >= building.x - 10 && 
+            player.x <= building.x + 10 && 
+            player.y < building.height - 10 
+        );
+        
+        if (frontCollision) {
+            gameStatus = 'falling'; 
+            playerDiv.classList = 'player dead';
+            player.v = -3; 
+            
+            console.log("Colisão frontal com prédio - iniciando queda");
+        }
     });
 
-    // Game progression
     speed += 0.001 * dt;
     gameProgress += speed * dt;
     road.style.left = (gameProgress % 10) * -1 + 'px';
     scoreDiv.innerHTML = `Score: ${score}`;
 
-    if (gameStatus === 'on') {
+    if (gameStatus === 'on' || gameStatus === 'falling') {
         requestAnimationFrame(render);
     }
 }
@@ -225,24 +312,24 @@ function createBuilding() {
     lastHeight = building.height;
 }
 
-// Função para iniciar o jogo
 function startGame() {
     console.log("Starting game...");
     
-    // CORREÇÃO: Realmente esconder a mensagem de várias maneiras
     msgDiv.classList.add('off');
-    msgDiv.innerHTML = ''; // Remover completamente o texto
-    msgDiv.style.display = 'none'; // Garantir que não seja exibido
+    msgDiv.innerHTML = ''; 
+    msgDiv.style.display = 'none'; 
     
     playerDiv.className = 'player idle';
     
-    // Resetar estado
     buildings.length = 0;
     buildingsDiv.innerHTML = '';
     
     player.x = 480;
     player.y = 0;
     player.v = 0;
+    player.jumpCount = 0;
+    player.isJumping = false;
+    player.lastCollidedBuilding = null; 
     
     speed = 1;
     score = 0;
@@ -250,6 +337,8 @@ function startGame() {
     gameProgress = 0;
     lastHeight = 0;
     lastTime = performance.now();
+    lastClickTime = 0; 
+    lastAction = Date.now(); 
     
     gameStatus = 'on';
     
